@@ -1,3 +1,3 @@
 # COMP472_Wargame
 
-##by brayden tsitirides
+## by brayden tsitirides, alexandra zana
