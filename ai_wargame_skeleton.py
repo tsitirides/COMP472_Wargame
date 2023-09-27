@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from time import sleep
 from typing import Tuple, TypeVar, Type, Iterable, ClassVar
 import random
-import pip._vendor.requests
+import requests
 
 # maximum and minimum values for our heuristic scores (usually represents an end of game condition)
 MAX_HEURISTIC_SCORE = 2000000000
@@ -313,11 +313,38 @@ class Game:
         """Validate a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
             return False
+
+        if not self.is_empty(coords.dst):
+            return False
+
         unit = self.get(coords.src)
+
         if unit is None or unit.player != self.next_player:
             return False
-        unit = self.get(coords.dst)
-        return (unit is None)
+
+        # Check if units are engaged in combat
+        for adjacent_coord in coords.src.iter_adjacent():
+            adjacent_unit = self.get(adjacent_coord)
+            if adjacent_unit and adjacent_unit.player != unit.player:
+                # Engaged in combat, AI, Firewall, and Program cannot move.
+                if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
+                    return False
+
+        # Check movement directions based on unit type and player.
+        if unit.player == Player.Attacker:
+            if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
+                # Attacker's AI, Firewall, and Program can only move up or left.
+                if coords.dst.row > coords.src.row or coords.dst.col > coords.src.col:
+                    return False
+            # Tech and Virus can move left, top, right, bottom.
+            return True
+        else:  # Player.Defender
+            if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
+                # Defender's AI, Firewall, and Program can only move down or right.
+                if coords.dst.row < coords.src.row or coords.dst.col < coords.src.col:
+                    return False
+            # Tech and Virus can move left, top, right, bottom.
+            return True
 
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
