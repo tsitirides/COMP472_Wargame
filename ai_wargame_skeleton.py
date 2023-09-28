@@ -315,10 +315,13 @@ class Game:
             self.remove_dead(coord)
 
     def is_valid_move(self, coords : CoordPair) -> bool:
-        """Validate a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
+        """Validate a move expressed as a CoordPair."""
         if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
             return False
 
+        # Self Destruct
+        if coords.src == coords.dst:
+            return True
         unit = self.get(coords.src)
 
         # if the source unit DNE or is not your player => invalid
@@ -336,36 +339,46 @@ class Game:
         if r_diff >= 1 and c_diff >= 1:
             return False
 
-        # Check if units are engaged in combat
+        ##############################################################################################################
+        # Check for units engaged in combat
+        ##############################################################################################################
         for adjacent_coord in coords.src.iter_adjacent():
             adjacent_unit = self.get(adjacent_coord)
             if adjacent_unit and adjacent_unit.player != unit.player:
-                # Engaged in combat => checks if space it is trying to move at is empty, if not => attack / repair
+                # Engaged in combat => checks if space it is trying to move at is empty,
+                # if not => attack / repair therefore move is valid
                 if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program] and self.is_empty(coords.dst):
                     return False
 
-        # Check for unit type, will determine directional movements
+        ##############################################################################################################
+        # This block checks for unit player type (attacker or defender)
+        # It will determine the directional movements it is capable of doing
+        ##############################################################################################################
         if unit.player == Player.Attacker:
             if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
                 # AI, Firewall, Program can only move up or left
                 if coords.dst.row > coords.src.row or coords.dst.col > coords.src.col:
                     return False
-            # Tech and Virus are any direction
-            return True
         # Defender
         else:
             if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
                 # AI, Firewall, and Program can only move down or right.
                 if coords.dst.row < coords.src.row or coords.dst.col < coords.src.col:
                     return False
-            # Tech and Virus are any direction
-            return True
+
+        # all moves valid
+        return True
 
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         if self.is_valid_move(coords):
-            if not self.is_empty(coords.dst): # attack or repair
-                source_unit = self.get(coords.src)
+            source_unit = self.get(coords.src)
+            # Self Destruct
+            if coords.dst == coords.src:
+                self.self_destruct(coords, source_unit)
+                return True, "Self Destructed"
+            # attack or repair
+            if not self.is_empty(coords.dst):
                 target_unit = self.get(coords.dst)
                 if target_unit.player == self.next_player:  # Friendly unit => repair
                     repair_amount = source_unit.repair_amount(target_unit)
@@ -383,6 +396,13 @@ class Game:
                 self.set(coords.src,None)
                 return True, ""
         return False, "invalid move"
+
+    def self_destruct(self, coords: CoordPair, source_unit: Unit):
+        self.mod_health(coords.src, -source_unit.health)
+        for adjacent_coord in coords.src.iter_range(1):
+            adjacent_unit = self.get(adjacent_coord)
+            if adjacent_unit:
+                self.mod_health(adjacent_coord, -2)
 
     def next_turn(self):
         """Transitions game to the next turn."""
