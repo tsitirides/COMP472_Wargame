@@ -317,6 +317,7 @@ class Game:
         # Self Destruct
         if coords.src == coords.dst:
             return True
+
         unit = self.get(coords.src)
 
         # if the source unit DNE or is not your player => invalid
@@ -377,6 +378,8 @@ class Game:
                 target_unit = self.get(coords.dst)
                 if target_unit.player == self.next_player:  # Friendly unit => repair
                     repair_amount = source_unit.repair_amount(target_unit)
+                    if repair_amount == 0 or not target_unit.health < 9:
+                        return False, "Invalid Move"
                     self.mod_health(coords.dst, repair_amount)
                     return True, f"Repaired unit. New health: {target_unit.health}"
                 else:  # Attack
