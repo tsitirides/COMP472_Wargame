@@ -309,6 +309,9 @@ class Game:
             target.mod_health(health_delta)
             self.remove_dead(coord)
 
+            #Mod health happens after: first we gotta create an if to check if the coord we are trying to heal is a friendly
+            #if attack, we gotta check if the coord we are trying to attack is indeed an enemy (or, engage in self-destruct)
+
     def is_valid_move(self, coords : CoordPair) -> bool:
         """Validate a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
@@ -334,6 +337,7 @@ class Game:
         if unit.player == Player.Attacker:
             if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
                 # Attacker's AI, Firewall, and Program can only move up or left.
+
                 if coords.dst.row > coords.src.row or coords.dst.col > coords.src.col:
                     return False
             # Tech and Virus can move left, top, right, bottom.
@@ -348,11 +352,12 @@ class Game:
 
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
-        if self.is_valid_move(coords):
+        if self.is_valid_move(coords): #Need is valid move before
             self.set(coords.dst,self.get(coords.src))
-            self.set(coords.src,None)
+            self.set(coords.src,None)     
             return (True,"")
         return (False,"invalid move")
+
 
     def next_turn(self):
         """Transitions game to the next turn."""
