@@ -46,7 +46,6 @@ class Unit:
     player: Player = Player.Attacker
     type: UnitType = UnitType.Program
     health : int = 9
-    in_combat : bool = False
     # class variable: damage table for units (based on the unit type constants in order)
     damage_table : ClassVar[list[list[int]]] = [
         [3,3,3,3,1], # AI
@@ -67,10 +66,6 @@ class Unit:
     def is_alive(self) -> bool:
         """Are we alive ?"""
         return self.health > 0
-
-    def is_in_combat(self) -> bool:
-        """Are we in combat ?"""
-        return self.in_combat
 
     def mod_health(self, health_delta : int):
         """Modify this unit's health by delta amount."""
@@ -322,6 +317,7 @@ class Game:
         # Self Destruct
         if coords.src == coords.dst:
             return True
+
         unit = self.get(coords.src)
 
         # if the source unit DNE or is not your player => invalid
@@ -370,7 +366,7 @@ class Game:
         return True
 
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
-        """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
+        """Validate and perform a move expressed as a CoordPair."""
         if self.is_valid_move(coords):
             source_unit = self.get(coords.src)
             # Self Destruct
@@ -382,6 +378,8 @@ class Game:
                 target_unit = self.get(coords.dst)
                 if target_unit.player == self.next_player:  # Friendly unit => repair
                     repair_amount = source_unit.repair_amount(target_unit)
+                    if repair_amount == 0 or not target_unit.health < 9:
+                        return False, "Invalid Move"
                     self.mod_health(coords.dst, repair_amount)
                     return True, f"Repaired unit. New health: {target_unit.health}"
                 else:  # Attack
@@ -398,6 +396,7 @@ class Game:
         return False, "invalid move"
 
     def self_destruct(self, coords: CoordPair, source_unit: Unit):
+        """Method to self-destruct, damages all surrounding units within range of 1"""
         self.mod_health(coords.src, -source_unit.health)
         for adjacent_coord in coords.src.iter_range(1):
             adjacent_unit = self.get(adjacent_coord)
