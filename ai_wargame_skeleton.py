@@ -325,6 +325,17 @@ class Game:
         if unit is None or unit.player != self.next_player:
             return False
 
+        # difference of col to check if valid adjacent move
+        r_diff = abs(coords.src.row - coords.dst.row)
+        c_diff = abs(coords.src.col - coords.dst.col)
+
+        # Movement can only be adjacent
+        if r_diff > 1 or c_diff > 1:
+            return False
+        # Diagonal move
+        if r_diff >= 1 and c_diff >= 1:
+            return False
+
         # Check if units are engaged in combat
         for adjacent_coord in coords.src.iter_adjacent():
             adjacent_unit = self.get(adjacent_coord)
@@ -353,10 +364,25 @@ class Game:
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         if self.is_valid_move(coords):
-            self.set(coords.dst,self.get(coords.src))
-            self.set(coords.src,None)
-            return (True,"")
-        return (False,"invalid move")
+            if not self.is_empty(coords.dst): # attack or repair
+                source_unit = self.get(coords.src)
+                target_unit = self.get(coords.dst)
+                if target_unit.player == self.next_player:  # Friendly unit => repair
+                    repair_amount = source_unit.repair_amount(target_unit)
+                    self.mod_health(coords.dst, repair_amount)
+                    return True, f"Repaired unit. New health: {target_unit.health}"
+                else:  # Attack
+                    damage_amount = source_unit.damage_amount(target_unit)
+                    self.mod_health(coords.dst, -damage_amount)
+                    # bi-directional combat
+                    damage_amount = target_unit.damage_amount(source_unit)
+                    self.mod_health(coords.src, -damage_amount)
+                    return True, f"Attacked unit. New health: {target_unit.health}"
+            else:
+                self.set(coords.dst,self.get(coords.src))
+                self.set(coords.src,None)
+                return True, ""
+        return False, "invalid move"
 
     def next_turn(self):
         """Transitions game to the next turn."""
