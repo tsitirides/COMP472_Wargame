@@ -46,6 +46,7 @@ class Unit:
     player: Player = Player.Attacker
     type: UnitType = UnitType.Program
     health : int = 9
+    in_combat : bool = False
     # class variable: damage table for units (based on the unit type constants in order)
     damage_table : ClassVar[list[list[int]]] = [
         [3,3,3,3,1], # AI
@@ -66,6 +67,10 @@ class Unit:
     def is_alive(self) -> bool:
         """Are we alive ?"""
         return self.health > 0
+
+    def is_in_combat(self) -> bool:
+        """Are we in combat ?"""
+        return self.in_combat
 
     def mod_health(self, health_delta : int):
         """Modify this unit's health by delta amount."""
@@ -314,11 +319,9 @@ class Game:
         if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
             return False
 
-        if not self.is_empty(coords.dst):
-            return False
-
         unit = self.get(coords.src)
 
+        # if the source unit DNE or is not your player => invalid
         if unit is None or unit.player != self.next_player:
             return False
 
@@ -326,24 +329,25 @@ class Game:
         for adjacent_coord in coords.src.iter_adjacent():
             adjacent_unit = self.get(adjacent_coord)
             if adjacent_unit and adjacent_unit.player != unit.player:
-                # Engaged in combat, AI, Firewall, and Program cannot move.
-                if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
+                # Engaged in combat => checks if space it is trying to move at is empty, if not => attack / repair
+                if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program] and self.is_empty(coords.dst):
                     return False
 
-        # Check movement directions based on unit type and player.
+        # Check for unit type, will determine directional movements
         if unit.player == Player.Attacker:
             if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
-                # Attacker's AI, Firewall, and Program can only move up or left.
+                # AI, Firewall, Program can only move up or left
                 if coords.dst.row > coords.src.row or coords.dst.col > coords.src.col:
                     return False
-            # Tech and Virus can move left, top, right, bottom.
+            # Tech and Virus are any direction
             return True
-        else:  # Player.Defender
+        # Defender
+        else:
             if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
-                # Defender's AI, Firewall, and Program can only move down or right.
+                # AI, Firewall, and Program can only move down or right.
                 if coords.dst.row < coords.src.row or coords.dst.col < coords.src.col:
                     return False
-            # Tech and Virus can move left, top, right, bottom.
+            # Tech and Virus are any direction
             return True
 
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
