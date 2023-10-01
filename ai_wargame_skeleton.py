@@ -3,11 +3,12 @@ import argparse
 import copy
 from datetime import datetime
 from enum import Enum
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from time import sleep
 from typing import Tuple, TypeVar, Type, Iterable, ClassVar
 import random
 import requests
+import dataclasses
 
 # maximum and minimum values for our heuristic scores (usually represents an end of game condition)
 MAX_HEURISTIC_SCORE = 2000000000
@@ -213,6 +214,7 @@ class CoordPair:
             return None
 
 ##############################################################################################################
+# Saving game trace
 
 @dataclass(slots=True)
 class Options:
@@ -222,10 +224,12 @@ class Options:
     min_depth : int | None = 2
     max_time : float | None = 5.0
     game_type : GameType = GameType.AttackerVsDefender
-    alpha_beta : bool = True
+    #alpha beta default set to False for now
+    alpha_beta : bool = False
     max_turns : int | None = 100
     randomize_moves : bool = True
     broker : str | None = None
+
 
 ##############################################################################################################
 
@@ -644,66 +648,131 @@ class Game:
 
 def show_menu():
     print("Choose a game type:")
-    print("0. Attacker vs Computer")
-    print("1. Computer vs Defender")
-    print("2. Attacker vs Defender")
+    print("0. Attacker vs Defender")
+    print("1. Attacker vs Computer")
+    print("2. Computer vs Defender")
     print("3. Computer vs Computer")
 
-    choice = input("Enter your choice (0/1/2/3): ")
+    # choice = input("Enter your choice (0/1/2/3): ")
 
-    if choice == "0":
-        print("not yet implemented")
-        return show_menu()
-    elif choice == "1":
-       print("not yet implemented")
-       return show_menu()
-    elif choice == "2":
-        return "manual"
-    elif choice == "3":
-        print("not yet implemented")
-        return show_menu()
-    else:
-        print("Invalid choice. Please select again.")
-        return show_menu()
+    while True:
+        choice = input("Enter your choice (0/1/2/3): ")
+        if choice in ["0", "1", "2", "3"]:
+            if choice != "0":
+                print("This game mode is not yet implemented. Please choose the manual game mode.")
+                continue
+            break
+        else:
+            print("Invalid choice. Please choose between 0,1, 2, or 3.")
+
+    #The if statement menu options are for once we have implemented the AI part; ignore for D1
+    # if choice == "0":
+    #     return "manual"
+    # elif choice == "1":
+    #    print("not yet implemented")
+    #    return show_menu()
+    # elif choice == "2":
+    #     print("not yet implemented")
+    #     return show_menu()
+    # elif choice == "3":
+    #     print("not yet implemented")
+    #     return show_menu()
+    # else:
+    #     print("Invalid choice. Please select again.")
+    #     return show_menu()
+    
+    # Get max_turns value
+    while True:
+        try:
+            max_turns = int(input("Enter maximum number of turns: "))
+            break
+        except ValueError:
+            print("Please enter a valid integer for maximum number of turns.")
+
+    # Get max_time value
+    while True:
+        try:
+            max_time = float(input("Enter timeout in seconds: "))
+            break
+        except ValueError:
+            print("Please enter a valid float value for timeout.")
+
+    return GameType.AttackerVsDefender, max_turns, max_time
+
+
+def generate_filename(options: Options) -> str:
+    b = "true" if options.alpha_beta else "false"
+    t = str(options.max_time)
+    m = str(options.max_turns)
+    return f"gameTrace-{b}-{t}-{m}.txt"
+
+def save_options_to_txt(options: Options, game: Game, filename="gameTrace-{b}-{t}-{m}.txt"): #TODO filename format
+    with open("gameTrace-{b}-{t}-{m}.txt", 'w') as txtfile:
+         # Output game options
+        txtfile.write("Game Options:\n")
+        for field in dataclasses.fields(options):
+            attribute_name = field.name
+            attribute_value = getattr(options, attribute_name)
+            txtfile.write(f"{attribute_name}: {attribute_value}\n")
+            #play modes are not included yet since only H vs H exists; TODO implement this once we have the AI version working
+
+
+        # Output board configuration
+        txtfile.write("\nInitial Board Configuration:\n")
+        for row in game.board:
+            row_str = ', '.join([str(unit) if unit is not None else 'None' for unit in row])
+            txtfile.write(row_str + "\n")
+        
 
 def main():
-    game_type_choice = show_menu()
+    game_type, max_turns, max_time = show_menu()
     # parse command line arguments
     parser = argparse.ArgumentParser(
         prog='ai_wargame',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--max_depth', type=int, help='maximum search depth')
-    parser.add_argument('--max_time', type=float, help='maximum search time')
-    parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
+    # parser.add_argument('--max_time', type=float, help='maximum search time')
+    # parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
     parser.add_argument('--broker', type=str, help='play via a game broker')
-    # args = parser.parse_args()
-    args = parser.parse_args(args=['--game_type', game_type_choice])
+    args = parser.parse_args()
+    # args = parser.parse_args(args=[
+    #     '--game_type', game_type,
+    #     '--max_time', str(max_time),
+    #     '--max_turns', str(max_turns)
+    # ])
 
-
-    # parse the game type
-    if args.game_type == "attacker":
-        game_type = GameType.AttackerVsComp
-    elif args.game_type == "defender":
-        game_type = GameType.CompVsDefender
-    elif args.game_type == "manual":
-        game_type = GameType.AttackerVsDefender
-    else:
-        game_type = GameType.CompVsComp
+    # parse the game type (commented it out because new menu implementation that is NOT via the command line)
+    # if args.game_type == "attacker":
+    #     game_type = GameType.AttackerVsComp
+    # elif args.game_type == "defender":
+    #     game_type = GameType.CompVsDefender
+    # elif args.game_type == "manual":
+    #     game_type = GameType.AttackerVsDefender
+    # else:
+    #     game_type = GameType.CompVsComp
 
     # set up game options
-    options = Options()
+    options = Options(max_turns=max_turns, max_time=max_time, game_type=game_type)
 
-    # override class defaults via command line options
-    if args.max_depth is not None:
-        options.max_depth = args.max_depth
-    if args.max_time is not None:
-        options.max_time = args.max_time
-    if args.broker is not None:
-        options.broker = args.broker
+
+   
+    # override class defaults via command line options (commented out in case we need this sort of menu implementation instead later)
+    # if args.max_depth is not None:
+    #     options.max_depth = args.max_depth
+    # if args.max_time is not None:
+    #     options.max_time = args.max_time
+    # if args.broker is not None:
+    #     options.broker = args.broker
 
     # create a new game
     game = Game(options=options)
     game.set_game_type_mode(game_type)
+    #TODO set max time and max turns (though max time will not affect anything for D1)
+
+    # Determine the filename based on game options
+    filename = generate_filename(game.options)
+     # Save to text file
+    save_options_to_txt(game.options, game)
 
     # the main game loop
     while True:
