@@ -706,23 +706,23 @@ def generate_filename(options: Options) -> str:
     m = str(options.max_turns)
     return f"gameTrace-{b}-{t}-{m}.txt"
 
-def save_options_to_txt(options: Options, game: Game, filename="gameTrace-{b}-{t}-{m}.txt"): #TODO filename format
-    with open("gameTrace-{b}-{t}-{m}.txt", 'w') as txtfile:
-         # Output game options
-        txtfile.write("Game Options:\n")
-        for field in dataclasses.fields(options):
-            attribute_name = field.name
-            attribute_value = getattr(options, attribute_name)
-            txtfile.write(f"{attribute_name}: {attribute_value}\n")
-            #play modes are not included yet since only H vs H exists; TODO implement this once we have the AI version working
+# def save_options_to_txt(options: Options, game: Game, filename="gameTrace-{b}-{t}-{m}.txt"): #TODO filename format
+#     with open(filename, 'w') as file:
+#          # Output game options
+#         file.write("Game Options:\n")
+#         for field in dataclasses.fields(options):
+#             attribute_name = field.name
+#             attribute_value = getattr(options, attribute_name)
+#             file.write(f"{attribute_name}: {attribute_value}\n")
+#             #play modes are not included yet since only H vs H exists; TODO implement this once we have the AI version working
 
 
-        # Output board configuration
-        txtfile.write("\nInitial Board Configuration:\n")
-        for row in game.board:
-            row_str = ', '.join([str(unit) if unit is not None else 'None' for unit in row])
-            txtfile.write(row_str + "\n")
-        
+#         # Output board configuration
+#         file.write("\nInitial Board Configuration:\n")
+#         for row in game.board:
+#             row_str = ', '.join([str(unit) if unit is not None else 'None' for unit in row])
+#             file.write(row_str + "\n")
+
 
 def main():
     game_type, max_turns, max_time = show_menu()
@@ -768,19 +768,34 @@ def main():
     game = Game(options=options)
     game.set_game_type_mode(game_type)
     #TODO set max time and max turns (though max time will not affect anything for D1)
-
     # Determine the filename based on game options
     filename = generate_filename(game.options)
-     # Save to text file
-    save_options_to_txt(game.options, game)
+    #  # Save to text file
+    # save_options_to_txt(game.options, game)
 
     # the main game loop
     while True:
+        with open(filename, 'w') as file:
+         # Output game options
+            file.write("Game Options:\n")
+            for field in dataclasses.fields(options):
+                attribute_name = field.name
+                attribute_value = getattr(options, attribute_name)
+                file.write(f"{attribute_name}: {attribute_value}\n")
+            #play modes are not included yet since only H vs H exists; TODO implement this once we have the AI version working
+        # Output board configuration
+            file.write("\nInitial Board Configuration:\n")
+            for row in game.board:
+                row_str = ', '.join([str(unit) if unit is not None else 'None' for unit in row])
+                file.write(row_str + "\n")
         print()
         print(game)
         winner = game.has_winner()
         if winner is not None:
             print(f"{winner.name} wins!")
+            #Print that to the output file too
+            with open(filename, 'a') as file:
+                file.write(f"{winner.name} wins!\n")
             break
         if game.options.game_type == GameType.AttackerVsDefender:
             game.human_turn()
@@ -796,6 +811,11 @@ def main():
             else:
                 print("Computer doesn't know what to do!!!")
                 exit(1)
+
+    # # Determine the filename based on game options
+    # filename = generate_filename(game.options)
+     # Save to text file
+    # save_options_to_txt(game.options, game)
 
 ##############################################################################################################
 
