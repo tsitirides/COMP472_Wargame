@@ -474,6 +474,30 @@ class Game:
                     output += f"{str(unit):^3} "
             output += "\n"
         return output
+    
+    def board_config_to_string(self) -> str:
+        dim = self.options.dim
+        coord = Coord()
+        output = ""
+        output += "\n   "
+        for col in range(dim):
+            coord.col = col
+            label = coord.col_string()
+            output += f"{label:^3} "
+        output += "\n"
+        for row in range(dim):
+            coord.row = row
+            label = coord.row_string()
+            output += f"{label}: "
+            for col in range(dim):
+                coord.col = col
+                unit = self.get(coord)
+                if unit is None:
+                    output += " .  "
+                else:
+                    output += f"{str(unit):^3} "
+            output += "\n"
+        return output
 
     def __str__(self) -> str:
         """Default string representation of a game."""
@@ -496,7 +520,7 @@ class Game:
             else:
                 print('Invalid coordinates! Try again.')
     
-    def human_turn(self):
+    def human_turn(self) -> str:
         """Human player plays a move (or get via broker)."""
         if self.options.broker is not None:
             print("Getting next move with auto-retry from game broker...")
@@ -706,7 +730,8 @@ def generate_filename(options: Options) -> str:
     m = str(options.max_turns)
     return f"gameTrace-{b}-{t}-{m}.txt"
 
-# def save_options_to_txt(options: Options, game: Game, filename="gameTrace-{b}-{t}-{m}.txt"): #TODO filename format
+# Swapped below implementation into main
+# def save_options_to_txt(options: Options, game: Game, filename="gameTrace-{b}-{t}-{m}.txt"):
 #     with open(filename, 'w') as file:
 #          # Output game options
 #         file.write("Game Options:\n")
@@ -715,14 +740,11 @@ def generate_filename(options: Options) -> str:
 #             attribute_value = getattr(options, attribute_name)
 #             file.write(f"{attribute_name}: {attribute_value}\n")
 #             #play modes are not included yet since only H vs H exists; TODO implement this once we have the AI version working
-
-
 #         # Output board configuration
 #         file.write("\nInitial Board Configuration:\n")
 #         for row in game.board:
 #             row_str = ', '.join([str(unit) if unit is not None else 'None' for unit in row])
 #             file.write(row_str + "\n")
-
 
 def main():
     game_type, max_turns, max_time = show_menu()
@@ -754,8 +776,6 @@ def main():
     # set up game options
     options = Options(max_turns=max_turns, max_time=max_time, game_type=game_type)
 
-
-   
     # override class defaults via command line options (commented out in case we need this sort of menu implementation instead later)
     # if args.max_depth is not None:
     #     options.max_depth = args.max_depth
@@ -772,50 +792,63 @@ def main():
     filename = generate_filename(game.options)
     #  # Save to text file
     # save_options_to_txt(game.options, game)
-
-    # the main game loop
-    while True:
-        with open(filename, 'w') as file:
+    
+    with open(filename, 'w') as file:
          # Output game options
-            file.write("Game Options:\n")
-            for field in dataclasses.fields(options):
-                attribute_name = field.name
-                attribute_value = getattr(options, attribute_name)
-                file.write(f"{attribute_name}: {attribute_value}\n")
+        file.write("Game Options:\n")
+        for field in dataclasses.fields(options):
+            attribute_name = field.name
+            attribute_value = getattr(options, attribute_name)
+            file.write(f"{attribute_name}: {attribute_value}\n")
             #play modes are not included yet since only H vs H exists; TODO implement this once we have the AI version working
         # Output board configuration
-            file.write("\nInitial Board Configuration:\n")
-            for row in game.board:
-                row_str = ', '.join([str(unit) if unit is not None else 'None' for unit in row])
-                file.write(row_str + "\n")
-        print()
-        print(game)
-        winner = game.has_winner()
-        if winner is not None:
-            print(f"{winner.name} wins!")
-            #Print that to the output file too
-            with open(filename, 'a') as file:
-                file.write(f"{winner.name} wins!\n")
-            break
-        if game.options.game_type == GameType.AttackerVsDefender:
-            game.human_turn()
-        elif game.options.game_type == GameType.AttackerVsComp and game.next_player == Player.Attacker:
-            game.human_turn()
-        elif game.options.game_type == GameType.CompVsDefender and game.next_player == Player.Defender:
-            game.human_turn()
-        else:
-            player = game.next_player
-            move = game.computer_turn()
-            if move is not None:
-                game.post_move_to_broker(move)
-            else:
-                print("Computer doesn't know what to do!!!")
-                exit(1)
+        file.write("\nInitial Board Configuration:\n")
+        for row in game.board:
+            row_str = ', '.join([str(unit) if unit is not None else 'None' for unit in row])
+            file.write(row_str + "\n")
 
-    # # Determine the filename based on game options
-    # filename = generate_filename(game.options)
-     # Save to text file
-    # save_options_to_txt(game.options, game)
+    # the main game loop
+        while True:
+            print()
+            print(game)
+            winner = game.has_winner()
+        
+            if winner is not None:
+                print(f"{winner.name} wins!")
+                #Print winner to the output file too
+                file.write(f"{winner.name} wins in " + str(game.turns_played) + " turns!\n")
+                if game.turns_played == 1:
+                    file.write(' turns \n')
+                else:
+                    file.write(' turns\n')
+                break
+            if game.options.game_type == GameType.AttackerVsDefender:
+                result = game.human_turn()
+                # file.write(f"{game.to_string()}")
+                file.write(f"{game.turns_played}")
+                if game.next_player == Player.Attacker:
+                    player = 'Defender'
+                else:
+                    player = 'Attacker'
+                file.write('player: ' + player + '\n')
+                # TODO: Fix bug to display move made!!!!
+                # file.write(result)
+                file.write(game.board_config_to_string() + '\n')
+
+            elif game.options.game_type == GameType.AttackerVsComp and game.next_player == Player.Attacker:
+                game.human_turn()
+           
+            elif game.options.game_type == GameType.CompVsDefender and game.next_player == Player.Defender:
+                game.human_turn()
+            else:
+                player = game.next_player
+                move = game.computer_turn()
+                if move is not None:
+                    game.post_move_to_broker(move)
+                else:
+                    print("Computer doesn't know what to do!!!")
+                    exit(1)
+
 
 ##############################################################################################################
 
