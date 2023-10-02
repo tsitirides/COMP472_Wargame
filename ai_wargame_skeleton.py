@@ -1,3 +1,6 @@
+#Alexandra Zana 40131077
+#Brandon Tsitsirides 40176018
+
 from __future__ import annotations
 import argparse
 import copy
