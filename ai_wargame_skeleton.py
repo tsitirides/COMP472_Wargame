@@ -477,10 +477,10 @@ class Game:
                     output += f"{str(unit):^3} "
             output += "\n"
         return output
-    
+    # board_config_to_string takes no args and returns a string representation of the board config
     def board_config_to_string(self) -> str:
-        dim = self.options.dim
-        coord = Coord()
+        dim = self.options.dim #gets dim from the options attr of the class instance
+        coord = Coord() #creates a coord object to keep track of current row/col
         output = ""
         output += "\n   "
         for col in range(dim):
@@ -790,11 +790,8 @@ def main():
     # create a new game
     game = Game(options=options)
     game.set_game_type_mode(game_type)
-    #TODO set max time and max turns (though max time will not affect anything for D1)
     # Determine the filename based on game options
     filename = generate_filename(game.options)
-    #  # Save to text file
-    # save_options_to_txt(game.options, game)
     
     with open(filename, 'w') as file:
          # Output game options
@@ -810,12 +807,11 @@ def main():
             row_str = ', '.join([str(unit) if unit is not None else 'None' for unit in row])
             file.write(row_str + "\n")
 
-    # the main game loop
+    # Main game loop
         while True:
             print()
             print(game)
             winner = game.has_winner()
-        
             if winner is not None:
                 print(f"{winner.name} wins!")
                 #Print winner to the output file too
@@ -829,13 +825,9 @@ def main():
                 result = game.human_turn()
                 # file.write(f"{game.to_string()}")
                 file.write(f"{game.turns_played}")
-                if game.next_player == Player.Attacker:
-                    player = 'Defender'
-                else:
-                    player = 'Attacker'
+                player = 'Defender' if game.next_player == Player.Attacker else 'Attacker' # Rewrote if statement to display the correct player in this format (cleaner)
                 file.write('player: ' + player + '\n')
-                # TODO: Fix bug to display move made!!!!
-                # file.write(result)
+                file.write(f"{player} made move {result}.\n") # Modified line to display the move made by the player (broken)
                 file.write(game.board_config_to_string() + '\n')
 
             elif game.options.game_type == GameType.AttackerVsComp and game.next_player == Player.Attacker:
