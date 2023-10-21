@@ -264,8 +264,8 @@ class Game:
         self.options.game_type = game_type
         
         # Reset to default
-        self._attacker_has_ai = False
-        self._defender_has_ai = False
+        #self._attacker_has_ai = False
+        #self._defender_has_ai = False
         
         if game_type == GameType.AttackerVsDefender:
             pass  # Both are human players, so nothing to set
