@@ -648,10 +648,44 @@ class Game:
         score = attackerScore - defenderScore
         return score
 
+    def minimax(self, depth: int, alpha: int, beta: int, maximizing_player: bool) -> Tuple[int, CoordPair | None, float]:
+        if depth == 0 or self.is_finished():
+            return (self.e0(), None, depth)
+        if maximizing_player:
+            max_eval = MIN_HEURISTIC_SCORE
+            moves = list(self.move_candidates())
+            best_move = None
+            for move in moves:
+                game_state = self.clone()
+                game_state.perform_move(move)
+                eval = game_state.minimax(depth, alpha, beta, False)[0] 
+                if eval > max_eval:
+                    max_eval = eval
+                    best_move = move
+                alpha = max(alpha, eval)
+                if beta <= alpha:
+                    break
+            return (max_eval, best_move, depth)
+        else:
+            min_eval = MAX_HEURISTIC_SCORE
+            moves = list(self.move_candidates())
+            best_move = None
+            for move in moves:
+                game_state = self.clone()
+                game_state.perform_move(move)
+                eval = game_state.minimax(depth, alpha, beta, True)[0]
+                if eval < min_eval:
+                    min_eval = eval
+                    best_move = move
+                beta = min(beta, eval)
+                if beta <= alpha:
+                    break
+            return (min_eval, best_move, depth)
+
     def suggest_move(self) -> CoordPair | None:
-        """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
+        """Suggest the next move using minimax alpha beta."""
         start_time = datetime.now()
-        (score, move, avg_depth) = self.random_move()
+        (score, move, avg_depth) = self.minimax(3, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, True)
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
         print(f"Heuristic score: {score}")
