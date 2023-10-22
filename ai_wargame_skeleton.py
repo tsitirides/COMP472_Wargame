@@ -1,6 +1,12 @@
 #Alexandra Zana 40131077
 #Brandon Tsitsirides 40176018
 
+# 1. implement e0 (done)
+# 2. implement minimax function
+#change suggest move after minimax is implemented so that it uses minimax
+# 3. implement alpha beta pruning
+# 4. come up with two heuristics e1 e2 and implement them
+
 from __future__ import annotations
 import argparse
 import copy
@@ -602,6 +608,45 @@ class Game:
             return (0, move_candidates[0], 1)
         else:
             return (0, None, 0)
+        
+    def e0(self) -> int:
+        if(self.next_player == Player.Attacker):
+            attackerUnits = self.player_units(self.next_player)
+            defenderUnits = self.player_units(self.next_player.next())
+        else:
+            defenderUnits = self.player_units(self.next_player)
+            attackerUnits = self.player_units(self.next_player.next())
+        
+        attackerScore = 0
+        defenderScore = 0
+        score = 0
+
+        for coordinates, units in attackerUnits:
+            if Unit.type == UnitType.AI:
+                attackerScore += 100
+            elif Unit.type == UnitType.Tech:
+                attackerScore += 50
+            elif Unit.type == UnitType.Virus:
+                attackerScore += 10
+            elif Unit.type == UnitType.Program:
+                attackerScore += 20
+            elif Unit.type == UnitType.Firewall:
+                attackerScore += 5
+        
+        for coordinates, units in defenderUnits:
+            if Unit.type == UnitType.AI:
+                defenderScore += 100
+            elif Unit.type == UnitType.Tech:
+                defenderScore += 50
+            elif Unit.type == UnitType.Virus:
+                defenderScore += 10
+            elif Unit.type == UnitType.Program:
+                defenderScore += 20
+            elif Unit.type == UnitType.Firewall:
+                defenderScore += 5
+
+        score = attackerScore - defenderScore
+        return score
 
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
