@@ -551,7 +551,7 @@ class Game:
                     print(f"Player {self.next_player.name}: ",end='')
                     print(result)
                     self.next_turn()
-                    break
+                    return result
                 else:
                     print("The move is not valid! Try again.")
 
@@ -685,6 +685,7 @@ class Game:
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta."""
         start_time = datetime.now()
+        move = list(self.move_candidates())[0]
         (score, move, avg_depth) = self.minimax(3, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, True)
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
@@ -828,100 +829,97 @@ def generate_filename(options: Options) -> str:
 #             file.write(row_str + "\n")
 
 def main():
-    game_type, max_turns, max_time = show_menu()
+    
     # parse command line arguments
     parser = argparse.ArgumentParser(
         prog='ai_wargame',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--max_depth', type=int, help='maximum search depth')
-    # parser.add_argument('--max_time', type=float, help='maximum search time')
-    # parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
+    parser.add_argument('--max_depth', type=int, help='maximum search depthgit pull origin main')
+    parser.add_argument('--max_time', type=float, help='maximum search time')
+    parser.add_argument('--max_turns', type=int, help='maximum turns')
+    parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
     parser.add_argument('--broker', type=str, help='play via a game broker')
     args = parser.parse_args()
-    # args = parser.parse_args(args=[
-    #     '--game_type', game_type,
-    #     '--max_time', str(max_time),
-    #     '--max_turns', str(max_turns)
-    # ])
 
-    # parse the game type (commented it out because new menu implementation that is NOT via the command line)
-    # if args.game_type == "attacker":
-    #     game_type = GameType.AttackerVsComp
-    # elif args.game_type == "defender":
-    #     game_type = GameType.CompVsDefender
-    # elif args.game_type == "manual":
-    #     game_type = GameType.AttackerVsDefender
-    # else:
-    #     game_type = GameType.CompVsComp
+    # parse the game type
+    if args.game_type == "attacker":
+        game_type = GameType.AttackerVsComp
+    elif args.game_type == "defender":
+        game_type = GameType.CompVsDefender
+    elif args.game_type == "manual":
+        game_type = GameType.AttackerVsDefender
+    else:
+        game_type = GameType.CompVsComp
+
 
     # set up game options
-    options = Options(max_turns=max_turns, max_time=max_time, game_type=game_type)
+    options = Options(game_type=game_type)
 
-    # override class defaults via command line options (commented out in case we need this sort of menu implementation instead later)
-    # if args.max_depth is not None:
-    #     options.max_depth = args.max_depth
-    # if args.max_time is not None:
-    #     options.max_time = args.max_time
-    # if args.broker is not None:
-    #     options.broker = args.broker
+    # override class defaults via command line options
+    if args.max_depth is not None:
+        options.max_depth = args.max_depth
+    if args.max_time is not None:
+        options.max_time = args.max_time
+    if args.max_turns is not None:
+        options.max_turns = args.max_turns
+    if args.broker is not None:
+        options.broker = args.broker
 
     # create a new game
     game = Game(options=options)
-    game.set_game_type_mode(game_type)
-    # Determine the filename based on game options
-    filename = generate_filename(game.options)
-    
-    with open(filename, 'w') as file:
-         # Output game options
-        file.write("Game Options:\n")
-        for field in dataclasses.fields(options):
-            attribute_name = field.name
-            attribute_value = getattr(options, attribute_name)
-            file.write(f"{attribute_name}: {attribute_value}\n")
-            #play modes are not included yet since only H vs H exists; TODO implement this once we have the AI version working
-        # Output board configuration
-        file.write("\nInitial Board Configuration:\n")
-        for row in game.board:
-            row_str = ', '.join([str(unit) if unit is not None else 'None' for unit in row])
-            file.write(row_str + "\n")
 
-    # Main game loop
-        while True:
-            print()
-            print(game)
-            winner = game.has_winner()
-            if winner is not None:
-                print(f"{winner.name} wins!")
-                #Print winner to the output file too
-                file.write(f"{winner.name} wins in " + str(game.turns_played) + " turns!\n")
-                if game.turns_played == 1:
-                    file.write(' turns \n')
-                else:
-                    file.write(' turns\n')
-                break
-            if game.options.game_type == GameType.AttackerVsDefender:
-                result = game.human_turn()
-                # file.write(f"{game.to_string()}")
-                file.write(f"{game.turns_played}")
-                player = 'Defender' if game.next_player == Player.Attacker else 'Attacker' # Rewrote if statement to display the correct player in this format (cleaner)
-                file.write('player: ' + player + '\n')
-                file.write(f"{player} made move {result}.\n") # Modified line to display the move made by the player (broken)
-                file.write(game.board_config_to_string() + '\n')
 
-            elif game.options.game_type == GameType.AttackerVsComp and game.next_player == Player.Attacker:
-                game.human_turn()
-           
-            elif game.options.game_type == GameType.CompVsDefender and game.next_player == Player.Defender:
-                game.human_turn()
+    # make a file to write output to
+    filename = 'gameTrace-' + str(game.options.alpha_beta) + '-' + str(int(game.options.max_time)) + '-' + str(game.options.max_turns) + '.txt'
+    out_file = open(filename, 'w')
+
+    # start writing relevant info to output file
+    out_file.write("\n --- GAME PARAMETERS --- \n\n")
+    out_file.write("t = " + str(game.options.max_time) + "s\n")
+    out_file.write("max # of turns: " + str(game.options.max_turns) + "\n\n")
+    out_file.write("\n --- INITIAL BOARD CONFIG ---\n")
+    out_file.write(game.board_config_to_string())
+    out_file.write('\n\n --- TURNS ---\n\n')
+
+    # the main game loop
+    while True:
+        print()
+        print(game)
+        winner = game.has_winner()
+        if winner is not None:
+            print(f"{winner.name} wins!")
+            # print it to the output file too
+            out_file.write('\n --- WINNER --- \n\n')
+            out_file.write(winner.name + ' wins in ' + str(game.turns_played))
+            if game.turns_played == 1:
+                out_file.write(' turn!\n')
             else:
-                player = game.next_player
-                move = game.computer_turn()
-                if move is not None:
-                    game.post_move_to_broker(move)
-                else:
-                    print("Computer doesn't know what to do!!!")
-                    exit(1)
-
+                out_file.write(' turns!\n')
+            break
+        if game.options.game_type == GameType.AttackerVsDefender:
+            result = game.human_turn()
+            out_file.write('turn #' + str(game.turns_played) + '\n')
+            if game.next_player == Player.Attacker:
+                player = 'Defender'
+            else:   
+                player = 'Attacker'
+            out_file.write('player: ' + player + '\n')
+            out_file.write('action: ' + result)
+            out_file.write(game.board_config_to_string() + '\n')
+            # ADD STUFF HERE
+        elif game.options.game_type == GameType.AttackerVsComp and game.next_player == Player.Attacker:
+            game.human_turn()
+        elif game.options.game_type == GameType.CompVsDefender and game.next_player == Player.Defender:
+            game.human_turn()
+        else:
+            player = game.next_player
+            move = game.computer_turn()
+            if move is not None:
+                game.post_move_to_broker(move)
+            else:
+                print("Computer doesn't know what to do!!!")
+                out_file.close()
+                exit(1)
 
 ##############################################################################################################
 
