@@ -1,3 +1,6 @@
+#Alexandra Zana 40131077
+#Brandon Tsitsirides 40176018
+
 from __future__ import annotations
 import argparse
 import copy
@@ -383,9 +386,10 @@ class Game:
                         return False        
 
                 #cannot repair a team mate with full health, not a valid move
-                src_unit = self.get(coords.src)
-                dst_unit = self.get(coords.dst)
-                if dst_unit and dst_unit.player == self.next_player and dst_unit == unit.Max_health:
+                
+        elif unit is not None:
+            if unit.player==self.next_player:
+                if unit.health==unit.Max_health:
                     return False
         return True
 
@@ -604,8 +608,7 @@ class Game:
                 move.dst = dst
                 if self.is_valid_move(move):
                     yield move.clone()
-            move.dst = src
-            yield move.clone()
+            
 
     def random_move(self) -> Tuple[int, CoordPair | None, float]:
         """Returns a random move."""
