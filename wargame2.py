@@ -700,8 +700,7 @@ class Game:
         score = attackerScore - defenderScore
         return score
 
-    
-    def minimax(self, depth: int, alpha: int, beta: int, maximizing_player: bool) -> Tuple[int, CoordPair | None, float]:
+    def minimax(self, depth: int, maximizing_player: bool) -> Tuple[int, CoordPair | None, float]:
         if depth == 0 or self.is_finished():
             return ((self.e0() + -self.e1() + -self.e2())/3, None, depth)
         if maximizing_player:
@@ -711,7 +710,35 @@ class Game:
             for move in moves:
                 game_state = self.clone()
                 game_state.perform_move(move)
-                eval = game_state.minimax(depth - 1, alpha, beta, False)[0] 
+                eval = game_state.minimax(depth - 1, False)[0] 
+                if eval > max_eval:
+                    max_eval = eval
+                    best_move = move
+            return (max_eval, best_move, depth)
+        else:
+            min_eval = MAX_HEURISTIC_SCORE
+            moves = list(self.move_candidates())
+            best_move = None
+            for move in moves:
+                game_state = self.clone()
+                game_state.perform_move(move)
+                eval = game_state.minimax(depth - 1, True)[0]
+                if eval < min_eval:
+                    min_eval = eval
+                    best_move = move
+            return (min_eval, best_move, depth)
+
+    def alphabeta(self, depth: int, alpha: int, beta: int, maximizing_player: bool) -> Tuple[int, CoordPair | None, float]:
+        if depth == 0 or self.is_finished():
+            return (self.e0(), None, depth)
+        if maximizing_player:
+            max_eval = MIN_HEURISTIC_SCORE
+            moves = list(self.move_candidates())
+            best_move = None
+            for move in moves:
+                game_state = self.clone()
+                game_state.perform_move(move)
+                eval = game_state.alphabeta(depth - 1, alpha, beta, False)[0] 
                 if eval > max_eval:
                     max_eval = eval
                     best_move = move
@@ -726,7 +753,7 @@ class Game:
             for move in moves:
                 game_state = self.clone()
                 game_state.perform_move(move)
-                eval = game_state.minimax(depth - 1, alpha, beta, True)[0]
+                eval = game_state.alphabeta(depth - 1, alpha, beta, True)[0]
                 if eval < min_eval:
                     min_eval = eval
                     best_move = move
