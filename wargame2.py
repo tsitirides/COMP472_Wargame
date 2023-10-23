@@ -703,7 +703,7 @@ class Game:
     
     def minimax(self, depth: int, alpha: int, beta: int, maximizing_player: bool) -> Tuple[int, CoordPair | None, float]:
         if depth == 0 or self.is_finished():
-            return ((self.e0() + -self.e1() + -self.e2())/2, None, depth)
+            return ((self.e0() + -self.e1() + -self.e2())/3, None, depth)
         if maximizing_player:
             max_eval = MIN_HEURISTIC_SCORE
             moves = list(self.move_candidates())
