@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from time import sleep
 from typing import Tuple, TypeVar, Type, Iterable, ClassVar
 import random
-import requests # ?
+#import requests # ?
 
 # maximum and minimum values for our heuristic scores (usually represents an end of game condition)
 MAX_HEURISTIC_SCORE = 2000000000
@@ -620,7 +620,45 @@ class Game:
             return (0, None, 0)
         
 
+    def e2(self) -> int: #shortest distance
+        score = 0
+        # identify the coordinates of the opposing player's AI unit
+        opposing_ai_coord = next((unit for coord, unit in self.player_units(self.next_player.next()) if unit.type == UnitType.AI), None)
+        if not opposing_ai_coord:
+            return score  # if AI unit not found
+        for coord, unit in self.player_units(self.next_player.next()):
+            if unit.type == UnitType.AI:
+                opposing_ai_coord = coord
+                break  # Exit loop once opposing AI is found
 
+
+        if opposing_ai_coord is None:
+            return self.options.dim * 2
+
+        # Manhattan distance from each of the player's units to the opposing AI
+        shortest_distance = float('inf')  # Initialize to infinity
+        for coord, unit in self.player_units(self.next_player):
+            distance = abs(coord.row - opposing_ai_coord.row) + abs(coord.col - opposing_ai_coord.col)
+            shortest_distance = min(shortest_distance, distance)
+
+        return shortest_distance
+
+    def e1(self) -> int:
+        score = 0
+        # identify the coordinates of the opposing player's AI unit
+        opposing_ai_coord =  next((unit for coord, unit in self.player_units(self.next_player.next()) if unit.type == UnitType.AI), None)
+        for coord, unit in self.player_units(self.next_player.next()):
+            if unit.type == UnitType.AI:
+                opposing_ai_coord = coord
+                break  # Exit loop once opposing AI is found
+        if opposing_ai_coord is None:
+            return score  # if AI unit not found
+
+        opposing_ai_unit = self.get(opposing_ai_coord)
+        for coord, unit in self.player_units(self.next_player):
+            score += unit.health - opposing_ai_unit.health + unit.damage_amount(opposing_ai_unit)
+
+        return score
 
 
     def e0(self) -> int:
@@ -665,7 +703,7 @@ class Game:
     
     def minimax(self, depth: int, alpha: int, beta: int, maximizing_player: bool) -> Tuple[int, CoordPair | None, float]:
         if depth == 0 or self.is_finished():
-            return (self.e0(), None, depth)
+            return ((self.e0() + -self.e1() + -self.e2())/2, None, depth)
         if maximizing_player:
             max_eval = MIN_HEURISTIC_SCORE
             moves = list(self.move_candidates())
