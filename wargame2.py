@@ -637,27 +637,27 @@ class Game:
 
         for coordinates, units in attackerUnits:
             if Unit.type == UnitType.AI:
-                attackerScore += 100
+                attackerScore += 9999
             elif Unit.type == UnitType.Tech:
-                attackerScore += 50
+                attackerScore += 3
             elif Unit.type == UnitType.Virus:
-                attackerScore += 10
+                attackerScore += 3
             elif Unit.type == UnitType.Program:
-                attackerScore += 20
+                attackerScore += 3
             elif Unit.type == UnitType.Firewall:
-                attackerScore += 5
+                attackerScore += 3
         
         for coordinates, units in defenderUnits:
             if Unit.type == UnitType.AI:
-                defenderScore += 100
+                defenderScore += 9999
             elif Unit.type == UnitType.Tech:
-                defenderScore += 50
+                defenderScore += 3
             elif Unit.type == UnitType.Virus:
-                defenderScore += 10
+                defenderScore += 3
             elif Unit.type == UnitType.Program:
-                defenderScore += 20
+                defenderScore += 3
             elif Unit.type == UnitType.Firewall:
-                defenderScore += 5
+                defenderScore += 3
 
         score = attackerScore - defenderScore
         return score
